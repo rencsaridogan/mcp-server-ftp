@@ -7,10 +7,9 @@ const HEX_REGEX = /^[0-9a-fA-F]+$/;
 function getKey(): Buffer {
   const raw = process.env.FTP_ENCRYPTION_KEY;
   if (!raw) throw new Error("FTP_ENCRYPTION_KEY is not set");
-  const key = Buffer.from(raw, "hex");
-  if (key.length !== 32)
+  if (raw.length !== 64 || !HEX_REGEX.test(raw))
     throw new Error("FTP_ENCRYPTION_KEY must be a 64-character hex string (32 bytes)");
-  return key;
+  return Buffer.from(raw, "hex");
 }
 
 export function encrypt(plaintext: string): string {

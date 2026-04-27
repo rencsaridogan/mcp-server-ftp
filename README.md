@@ -140,7 +140,8 @@ Keep this key secret — treat it like a master password.
 ### 2. Encrypt a credential value
 
 ```bash
-FTP_ENCRYPTION_KEY=<your-64-char-hex-key> npx ts-node scripts/encrypt-env.ts <plaintext-value>
+npm run build
+FTP_ENCRYPTION_KEY=<your-64-char-hex-key> npm run encrypt-env -- <plaintext-value>
 ```
 
 The output is a self-contained encrypted string in the format `enc:<iv_hex>:<tag_hex>:<ciphertext_hex>`.
