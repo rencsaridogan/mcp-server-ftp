@@ -11,7 +11,8 @@
     "build": "tsc",
     "start": "node build/index.js",
     "dev": "npm run build && npm start",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "encrypt-env": "node -e \"const {encrypt}=await import('./build/crypto.js');const plaintext=process.argv[2];if(!plaintext){console.error('Usage: npm run encrypt-env -- <plaintext>');process.exit(1);}console.log(encrypt(plaintext))\" --input-type=module"
   },
   "keywords": [
     "mcp",
@@ -25,10 +26,12 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
     "basic-ftp": "^5.0.3",
+    "ssh2-sftp-client": "^12.1.1",
     "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/node": "^20.9.0",
+    "@types/ssh2-sftp-client": "^9.0.6",
     "typescript": "^5.2.2"
   },
   "files": [
