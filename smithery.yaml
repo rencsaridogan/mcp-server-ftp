@@ -23,17 +23,28 @@ startCommand:
       ftpUser:
         type: string
         default: anonymous
-        description: FTP username
+        description: >
+          FTP username. May be an encrypted value (enc:<iv_hex>:<tag_hex>:<ciphertext_hex>)
+          when ftpEncryptionKey is provided.
       ftpPassword:
         type: string
+        format: password
         default: ""
-        description: FTP password
+        description: >
+          FTP password. Supports encrypted values (enc:<iv_hex>:<tag_hex>:<ciphertext_hex>)
+          when ftpEncryptionKey is provided. Encrypt using the encrypt-env script.
+      ftpEncryptionKey:
+        type: string
+        format: password
+        description: >
+          Optional 64-character hex AES-256 key used to decrypt ftpPassword and
+          ftpUser at runtime. Generate with:
+          node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
       ftpSecure:
         type: boolean
         default: false
         description: Use secure FTP (FTPS)
   commandFunction:
-    # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
     |-
     (config) => ({
       command: 'node',
@@ -43,7 +54,8 @@ startCommand:
         FTP_PORT: String(config.ftpPort),
         FTP_USER: config.ftpUser,
         FTP_PASSWORD: config.ftpPassword,
-        FTP_SECURE: String(config.ftpSecure)
+        FTP_SECURE: String(config.ftpSecure),
+        ...(config.ftpEncryptionKey ? { FTP_ENCRYPTION_KEY: config.ftpEncryptionKey } : {})
       }
     })
   exampleConfig:
@@ -52,3 +64,4 @@ startCommand:
     ftpUser: your-username
     ftpPassword: your-password
     ftpSecure: false
+    ftpEncryptionKey: ""

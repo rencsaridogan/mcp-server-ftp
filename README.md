@@ -120,9 +120,54 @@ If you encounter build issues on Windows:
 |---------------------|-------------|---------|
 | `FTP_HOST` | FTP server hostname or IP address | localhost |
 | `FTP_PORT` | FTP server port | 21 |
-| `FTP_USER` | FTP username | anonymous |
-| `FTP_PASSWORD` | FTP password | (empty string) |
+| `FTP_USER` | FTP username (supports encryption) | anonymous |
+| `FTP_PASSWORD` | FTP password (supports encryption) | (empty string) |
 | `FTP_SECURE` | Use secure FTP (FTPS) | false |
+| `FTP_ENCRYPTION_KEY` | 64-character hex AES-256 key for decrypting credentials | (disabled) |
+
+## Credential Encryption
+
+Storing plaintext passwords in your Claude config file is a security risk. The server supports AES-256-GCM encryption for `FTP_USER` and `FTP_PASSWORD` so the config only ever contains ciphertext.
+
+### 1. Generate an encryption key
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+Keep this key secret — treat it like a master password.
+
+### 2. Encrypt a credential value
+
+```bash
+npm run build
+FTP_ENCRYPTION_KEY=<your-64-char-hex-key> npm run encrypt-env -- <plaintext-value>
+```
+
+The output is a self-contained encrypted string in the format `enc:<iv_hex>:<tag_hex>:<ciphertext_hex>`.
+
+### 3. Use the encrypted values in your config
+
+Set `FTP_ENCRYPTION_KEY` alongside the encrypted credentials. Values that do not start with `enc:` are treated as plaintext, so you can encrypt selectively.
+
+```json
+{
+  "mcpServers": {
+    "ftp-server": {
+      "command": "node",
+      "args": ["/absolute/path/to/mcp-server-ftp/build/index.js"],
+      "env": {
+        "FTP_HOST": "ftp.example.com",
+        "FTP_PORT": "21",
+        "FTP_USER": "enc:aabbcc...:ddeeff...:112233...",
+        "FTP_PASSWORD": "enc:aabbcc...:ddeeff...:112233...",
+        "FTP_SECURE": "false",
+        "FTP_ENCRYPTION_KEY": "<your-64-char-hex-key>"
+      }
+    }
+  }
+}
+```
 
 ## Usage
 
@@ -148,7 +193,7 @@ After configuring and restarting Claude for Desktop, you can use natural languag
 
 ## Security Considerations
 
-- FTP credentials are stored in the Claude configuration file. Ensure this file has appropriate permissions.
+- Use the [Credential Encryption](#credential-encryption) feature to avoid storing plaintext passwords in your config file.
 - Consider using FTPS (secure FTP) by setting `FTP_SECURE=true` if your server supports it.
 - The server creates temporary files for uploads and downloads in your system's temp directory.
 

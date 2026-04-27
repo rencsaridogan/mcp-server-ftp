@@ -1,0 +1,45 @@
+import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
+
+const ALGORITHM = "aes-256-gcm";
+const ENC_PREFIX = "enc:";
+const HEX_REGEX = /^[0-9a-fA-F]+$/;
+
+function getKey(): Buffer {
+  const raw = process.env.FTP_ENCRYPTION_KEY;
+  if (!raw) throw new Error("FTP_ENCRYPTION_KEY is not set");
+  if (raw.length !== 64 || !HEX_REGEX.test(raw))
+    throw new Error("FTP_ENCRYPTION_KEY must be a 64-character hex string (32 bytes)");
+  return Buffer.from(raw, "hex");
+}
+
+export function encrypt(plaintext: string): string {
+  const key = getKey();
+  const iv = randomBytes(12);
+  const cipher = createCipheriv(ALGORITHM, key, iv);
+  const encrypted = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  // format: enc:<iv_hex>:<tag_hex>:<ciphertext_hex>
+  return `${ENC_PREFIX}${iv.toString("hex")}:${tag.toString("hex")}:${encrypted.toString("hex")}`;
+}
+
+export function decrypt(value: string): string {
+  if (!value.startsWith(ENC_PREFIX)) return value; // plaintext passthrough
+  const key = getKey();
+  const parts = value.slice(ENC_PREFIX.length).split(":");
+  if (parts.length !== 3) throw new Error("Malformed encrypted value");
+  const [ivHex, tagHex, ctHex] = parts;
+  if (!HEX_REGEX.test(ivHex) || !HEX_REGEX.test(tagHex) || !HEX_REGEX.test(ctHex))
+    throw new Error("Malformed encrypted value: segments must be hex strings");
+  const iv = Buffer.from(ivHex, "hex");
+  if (iv.length !== 12) throw new Error("Malformed encrypted value: IV must be 12 bytes");
+  const tag = Buffer.from(tagHex, "hex");
+  if (tag.length !== 16) throw new Error("Malformed encrypted value: auth tag must be 16 bytes");
+  const ct = Buffer.from(ctHex, "hex");
+  const decipher = createDecipheriv(ALGORITHM, key, iv);
+  decipher.setAuthTag(tag);
+  return Buffer.concat([decipher.update(ct), decipher.final()]).toString("utf8");
+}
+
+export function isEncrypted(value: string): boolean {
+  return value.startsWith(ENC_PREFIX);
+}

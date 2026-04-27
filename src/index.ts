@@ -3,18 +3,10 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { FtpClient, FtpConfig } from "./ftp-client.js";
+import { decrypt } from "./crypto.js";
 
-// Get FTP config from environment variables
-const ftpConfig: FtpConfig = {
-  host: process.env.FTP_HOST || "localhost",
-  port: parseInt(process.env.FTP_PORT || "21"),
-  user: process.env.FTP_USER || "anonymous",
-  password: process.env.FTP_PASSWORD || "",
-  secure: process.env.FTP_SECURE?.toLowerCase() === "true"
-};
-
-// Initialize FTP client
-const ftpClient = new FtpClient(ftpConfig);
+// FTP client – initialized inside main() so decryption errors are caught gracefully
+let ftpClient: FtpClient;
 
 // Create server instance
 const server = new McpServer({
@@ -238,6 +230,22 @@ function formatSize(bytes: number): string {
 
 // Initialize and run the server
 async function main() {
+  try {
+    const ftpConfig: FtpConfig = {
+      host: process.env.FTP_HOST || "localhost",
+      port: parseInt(process.env.FTP_PORT || "21"),
+      user: decrypt(process.env.FTP_USER || "anonymous"),
+      password: decrypt(process.env.FTP_PASSWORD || ""),
+      secure: process.env.FTP_SECURE?.toLowerCase() === "true",
+    };
+    ftpClient = new FtpClient(ftpConfig);
+  } catch (error) {
+    console.error(
+      "Failed to initialize FTP config:",
+      error instanceof Error ? error.message : String(error)
+    );
+    process.exit(1);
+  }
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error("FTP MCP Server running on stdio");
