@@ -3,13 +3,14 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { FtpClient, FtpConfig } from "./ftp-client.js";
+import { decrypt } from "./crypto.js";
 
 // Get FTP config from environment variables
 const ftpConfig: FtpConfig = {
   host: process.env.FTP_HOST || "localhost",
   port: parseInt(process.env.FTP_PORT || "21"),
-  user: process.env.FTP_USER || "anonymous",
-  password: process.env.FTP_PASSWORD || "",
+  user: decrypt(process.env.FTP_USER || "anonymous"),
+  password: decrypt(process.env.FTP_PASSWORD || ""),
   secure: process.env.FTP_SECURE?.toLowerCase() === "true"
 };
 
