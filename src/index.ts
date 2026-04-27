@@ -3,10 +3,20 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { FtpClient, FtpConfig } from "./ftp-client.js";
+import { SftpClient, SftpConfig } from "./sftp-client.js";
 import { decrypt } from "./crypto.js";
+import { ConnectionType } from "./connection-type.js";
 
-// FTP client – initialized inside main() so decryption errors are caught gracefully
-let ftpClient: FtpClient;
+function resolveSecure(raw: string | undefined): boolean {
+  const v = raw?.trim().toLowerCase();
+  if (v === "true" || v === "1" || v === "yes") return true;
+  if (v === "false" || v === "0" || v === "no" || v === undefined) return false;
+  throw new Error(`Invalid value for FTP_SECURE: "${raw}". Expected true/false.`);
+}
+
+// Client initialized inside main() so decryption/config errors are caught gracefully
+type AnyFtpClient = FtpClient | SftpClient;
+let ftpClient: AnyFtpClient;
 
 // Create server instance
 const server = new McpServer({
@@ -231,14 +241,32 @@ function formatSize(bytes: number): string {
 // Initialize and run the server
 async function main() {
   try {
-    const ftpConfig: FtpConfig = {
-      host: process.env.FTP_HOST || "localhost",
-      port: parseInt(process.env.FTP_PORT || "21"),
-      user: decrypt(process.env.FTP_USER || "anonymous"),
-      password: decrypt(process.env.FTP_PASSWORD || ""),
-      secure: process.env.FTP_SECURE?.toLowerCase() === "true",
-    };
-    ftpClient = new FtpClient(ftpConfig);
+    const protocol = (process.env.FTP_PROTOCOL || ConnectionType.FTP).trim().toLowerCase() as ConnectionType;
+    const host = process.env.FTP_HOST || "localhost";
+    const user = decrypt(process.env.FTP_USER || "anonymous");
+    const password = decrypt(process.env.FTP_PASSWORD || "");
+    const passphrase = decrypt(process.env.FTP_PASSPHRASE || "");
+
+    if (protocol === ConnectionType.SFTP) {
+      const sftpConfig: SftpConfig = {
+        host,
+        port: parseInt(process.env.FTP_PORT || "22", 10),
+        user,
+        password,
+        passphrase,
+        privateKeyPath: process.env.FTP_PRIVATE_KEY_PATH || "",
+      };
+      ftpClient = new SftpClient(sftpConfig);
+    } else {
+      const ftpConfig: FtpConfig = {
+        host,
+        port: parseInt(process.env.FTP_PORT || "21", 10),
+        user,
+        password,
+        secure: resolveSecure(process.env.FTP_SECURE),
+      };
+      ftpClient = new FtpClient(ftpConfig);
+    }
   } catch (error) {
     console.error(
       "Failed to initialize FTP config:",

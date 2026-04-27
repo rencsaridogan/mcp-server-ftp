@@ -3,7 +3,6 @@
 startCommand:
   type: stdio
   configSchema:
-    # JSON Schema defining the configuration options for the MCP.
     type: object
     required:
       - ftpHost
@@ -43,7 +42,27 @@ startCommand:
       ftpSecure:
         type: boolean
         default: false
-        description: Use secure FTP (FTPS)
+        description: Use secure FTP (FTPS). Ignored when ftpProtocol is sftp.
+      ftpProtocol:
+        type: string
+        enum: [ftp, sftp]
+        default: ftp
+        description: >
+          Protocol to use. "ftp" uses basic-ftp (port 21 default, FTPS optional).
+          "sftp" uses SSH File Transfer Protocol (port 22 default, key auth automatic).
+      ftpPrivateKeyPath:
+        type: string
+        default: ""
+        description: >
+          Path to SSH private key for SFTP (e.g. ~/.ssh/id_ed25519).
+          Leave empty to auto-detect from ~/.ssh/id_ed25519, ~/.ssh/id_rsa, or ~/.ssh/id_ecdsa.
+      ftpPassphrase:
+        type: string
+        format: password
+        default: ""
+        description: >
+          Passphrase for the SSH private key (SFTP only). Supports encrypted values
+          (enc:<iv>:<tag>:<ciphertext>) when ftpEncryptionKey is provided.
   commandFunction:
     |-
     (config) => ({
@@ -55,6 +74,9 @@ startCommand:
         FTP_USER: config.ftpUser,
         FTP_PASSWORD: config.ftpPassword,
         FTP_SECURE: String(config.ftpSecure),
+        FTP_PROTOCOL: config.ftpProtocol || 'ftp',
+        ...(config.ftpPrivateKeyPath ? { FTP_PRIVATE_KEY_PATH: config.ftpPrivateKeyPath } : {}),
+        ...(config.ftpPassphrase ? { FTP_PASSPHRASE: config.ftpPassphrase } : {}),
         ...(config.ftpEncryptionKey ? { FTP_ENCRYPTION_KEY: config.ftpEncryptionKey } : {})
       }
     })
@@ -64,4 +86,7 @@ startCommand:
     ftpUser: your-username
     ftpPassword: your-password
     ftpSecure: false
+    ftpProtocol: sftp
+    ftpPrivateKeyPath: ""
+    ftpPassphrase: ""
     ftpEncryptionKey: ""
