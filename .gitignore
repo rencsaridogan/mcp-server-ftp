@@ -17,6 +17,9 @@ jspm_packages/
 # Optional npm cache directory
 .npm
 
+# Lock file for npm installation
+package-lock.json
+
 # Build output
 build/
 dist/
