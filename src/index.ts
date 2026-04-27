@@ -4,6 +4,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { FtpClient, FtpConfig } from "./ftp-client.js";
 import { decrypt } from "./crypto.js";
+import { loadEncryptionKey } from "./keychain.js";
 
 // FTP client – initialized inside main() so decryption errors are caught gracefully
 let ftpClient: FtpClient;
@@ -230,6 +231,7 @@ function formatSize(bytes: number): string {
 
 // Initialize and run the server
 async function main() {
+  await loadEncryptionKey();
   try {
     const ftpConfig: FtpConfig = {
       host: process.env.FTP_HOST || "localhost",
