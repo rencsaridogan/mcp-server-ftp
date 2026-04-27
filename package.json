@@ -12,7 +12,7 @@
     "start": "node build/index.js",
     "dev": "npm run build && npm start",
     "prepublishOnly": "npm run build",
-    "encrypt-env": "node -e \"const {encrypt}=await import('./build/crypto.js');console.log(encrypt(process.argv[1]))\" --input-type=module"
+    "encrypt-env": "node -e \"const {encrypt}=await import('./build/crypto.js');const plaintext=process.argv[2];if(!plaintext){console.error('Usage: npm run encrypt-env -- <plaintext>');process.exit(1);}console.log(encrypt(plaintext))\" --input-type=module"
   },
   "keywords": [
     "mcp",

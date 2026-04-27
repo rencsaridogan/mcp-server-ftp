@@ -24,14 +24,14 @@ startCommand:
         type: string
         default: anonymous
         description: >
-          FTP username. May be an encrypted value (enc:<iv>:<tag>:<ciphertext>)
+          FTP username. May be an encrypted value (enc:<iv_hex>:<tag_hex>:<ciphertext_hex>)
           when ftpEncryptionKey is provided.
       ftpPassword:
         type: string
         format: password
         default: ""
         description: >
-          FTP password. Supports encrypted values (enc:<iv>:<tag>:<ciphertext>)
+          FTP password. Supports encrypted values (enc:<iv_hex>:<tag_hex>:<ciphertext_hex>)
           when ftpEncryptionKey is provided. Encrypt using the encrypt-env script.
       ftpEncryptionKey:
         type: string

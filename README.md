@@ -143,7 +143,7 @@ Keep this key secret — treat it like a master password.
 FTP_ENCRYPTION_KEY=<your-64-char-hex-key> npx ts-node scripts/encrypt-env.ts <plaintext-value>
 ```
 
-The output is a self-contained encrypted string in the format `enc:<iv>:<tag>:<ciphertext>`.
+The output is a self-contained encrypted string in the format `enc:<iv_hex>:<tag_hex>:<ciphertext_hex>`.
 
 ### 3. Use the encrypted values in your config
 

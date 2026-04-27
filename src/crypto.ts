@@ -2,6 +2,7 @@ import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
 
 const ALGORITHM = "aes-256-gcm";
 const ENC_PREFIX = "enc:";
+const HEX_REGEX = /^[0-9a-fA-F]+$/;
 
 function getKey(): Buffer {
   const raw = process.env.FTP_ENCRYPTION_KEY;
@@ -28,12 +29,16 @@ export function decrypt(value: string): string {
   const parts = value.slice(ENC_PREFIX.length).split(":");
   if (parts.length !== 3) throw new Error("Malformed encrypted value");
   const [ivHex, tagHex, ctHex] = parts;
+  if (!HEX_REGEX.test(ivHex) || !HEX_REGEX.test(tagHex) || !HEX_REGEX.test(ctHex))
+    throw new Error("Malformed encrypted value: segments must be hex strings");
   const iv = Buffer.from(ivHex, "hex");
+  if (iv.length !== 12) throw new Error("Malformed encrypted value: IV must be 12 bytes");
   const tag = Buffer.from(tagHex, "hex");
+  if (tag.length !== 16) throw new Error("Malformed encrypted value: auth tag must be 16 bytes");
   const ct = Buffer.from(ctHex, "hex");
   const decipher = createDecipheriv(ALGORITHM, key, iv);
   decipher.setAuthTag(tag);
-  return decipher.update(ct) + decipher.final("utf8");
+  return Buffer.concat([decipher.update(ct), decipher.final()]).toString("utf8");
 }
 
 export function isEncrypted(value: string): boolean {
