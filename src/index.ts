@@ -279,7 +279,7 @@ async function main() {
     }
   } catch (error) {
     console.error(
-      "Failed to initialize FTP config:",
+      "Failed to initialize connection config:",
       error instanceof Error ? error.message : String(error)
     );
     process.exit(1);

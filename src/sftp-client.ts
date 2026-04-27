@@ -13,14 +13,21 @@ export interface SftpConfig {
 }
 
 function resolvePrivateKey(keyPath: string): Buffer | undefined {
-  const expanded = keyPath.startsWith("~")
-    ? path.join(os.homedir(), keyPath.slice(1))
-    : keyPath;
+  const expanded =
+    keyPath === "~"
+      ? os.homedir()
+      : keyPath.startsWith("~/")
+        ? path.join(os.homedir(), keyPath.slice(2))
+        : keyPath;
   if (fs.existsSync(expanded)) return fs.readFileSync(expanded);
   return undefined;
 }
 
 const DEFAULT_KEY_PATHS = ["~/.ssh/id_ed25519", "~/.ssh/id_rsa", "~/.ssh/id_ecdsa"];
+
+async function safeDisconnect(client: Ssh2SftpClient): Promise<void> {
+  try { await client.end(); } catch { /* ignore disconnect errors */ }
+}
 
 type FileEntry = { name: string; type: string; size: number; modifiedDate: string };
 
@@ -79,7 +86,7 @@ export class SftpClient {
         modifiedDate: new Date(item.modifyTime).toISOString(),
       }));
     } finally {
-      await client.end();
+      await safeDisconnect(client);
     }
   }
 
@@ -92,7 +99,8 @@ export class SftpClient {
       const content = fs.readFileSync(tempFilePath, "utf8");
       return { filePath: tempFilePath, content };
     } finally {
-      await client.end();
+      if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+      await safeDisconnect(client);
     }
   }
 
@@ -105,8 +113,8 @@ export class SftpClient {
       await client.fastPut(tempFilePath, remotePath);
       return true;
     } finally {
-      fs.existsSync(tempFilePath) && fs.unlinkSync(tempFilePath);
-      await client.end();
+      if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+      await safeDisconnect(client);
     }
   }
 
@@ -117,7 +125,7 @@ export class SftpClient {
       await client.mkdir(remotePath, true);
       return true;
     } finally {
-      await client.end();
+      await safeDisconnect(client);
     }
   }
 
@@ -128,7 +136,7 @@ export class SftpClient {
       await client.delete(remotePath);
       return true;
     } finally {
-      await client.end();
+      await safeDisconnect(client);
     }
   }
 
@@ -139,7 +147,7 @@ export class SftpClient {
       await client.rmdir(remotePath, true);
       return true;
     } finally {
-      await client.end();
+      await safeDisconnect(client);
     }
   }
 }
