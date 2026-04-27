@@ -39,6 +39,11 @@ export class SftpClient {
     let privateKey: Buffer | undefined;
     if (this.config.privateKeyPath) {
       privateKey = resolvePrivateKey(this.config.privateKeyPath);
+      if (!privateKey) {
+        throw new Error(
+          `FTP_PRIVATE_KEY_PATH is set to "${this.config.privateKeyPath}" but no key could be read from that path.`
+        );
+      }
     } else {
       for (const p of DEFAULT_KEY_PATHS) {
         privateKey = resolvePrivateKey(p);

@@ -82,9 +82,9 @@ startCommand:
     })
   exampleConfig:
     ftpHost: ftp.example.com
-    ftpPort: 21
+    ftpPort: 22
     ftpUser: your-username
-    ftpPassword: your-password
+    ftpPassword: ""
     ftpSecure: false
     ftpProtocol: sftp
     ftpPrivateKeyPath: ""

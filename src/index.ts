@@ -11,7 +11,17 @@ function resolveSecure(raw: string | undefined): boolean {
   const v = raw?.trim().toLowerCase();
   if (v === "true" || v === "1" || v === "yes") return true;
   if (v === "false" || v === "0" || v === "no" || v === undefined) return false;
-  throw new Error(`Invalid value for FTP_SECURE: "${raw}". Expected true/false.`);
+  throw new Error(`Invalid value for FTP_SECURE: "${raw}". Expected one of: true/false, 1/0, yes/no.`);
+}
+
+function resolveProtocol(raw: string | undefined): ConnectionType {
+  const v = raw?.trim().toLowerCase();
+  if (v === undefined || v === "") return ConnectionType.FTP;
+  if (v === ConnectionType.FTP) return ConnectionType.FTP;
+  if (v === ConnectionType.SFTP) return ConnectionType.SFTP;
+  throw new Error(
+    `Invalid value for FTP_PROTOCOL: "${raw}". Expected one of: ${ConnectionType.FTP}, ${ConnectionType.SFTP}.`
+  );
 }
 
 // Client initialized inside main() so decryption/config errors are caught gracefully
@@ -241,13 +251,13 @@ function formatSize(bytes: number): string {
 // Initialize and run the server
 async function main() {
   try {
-    const protocol = (process.env.FTP_PROTOCOL || ConnectionType.FTP).trim().toLowerCase() as ConnectionType;
+    const protocol = resolveProtocol(process.env.FTP_PROTOCOL);
     const host = process.env.FTP_HOST || "localhost";
     const user = decrypt(process.env.FTP_USER || "anonymous");
     const password = decrypt(process.env.FTP_PASSWORD || "");
-    const passphrase = decrypt(process.env.FTP_PASSPHRASE || "");
 
     if (protocol === ConnectionType.SFTP) {
+      const passphrase = decrypt(process.env.FTP_PASSPHRASE || "");
       const sftpConfig: SftpConfig = {
         host,
         port: parseInt(process.env.FTP_PORT || "22", 10),
