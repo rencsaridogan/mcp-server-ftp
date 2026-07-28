@@ -35,8 +35,7 @@ type FileEntry = { name: string; type: string; size: number; modifiedDate: strin
 export class SftpClient {
   private config: SftpConfig;
   private tempDir: string;
-  private cachedPrivateKey: Buffer | undefined;
-  private privateKeyResolved = false;
+  private privateKeyPromise: Promise<Buffer | undefined> | undefined;
 
   constructor(config: SftpConfig) {
     this.config = config;
@@ -45,11 +44,19 @@ export class SftpClient {
   }
 
   // Resolve key from explicit path or 1Password reference first, then fall
-  // back to ~/.ssh defaults. Cached so 1Password is only consulted once per
-  // process (each read may trigger an authorization prompt).
-  private async resolvePrivateKeyMaterial(): Promise<Buffer | undefined> {
-    if (this.privateKeyResolved) return this.cachedPrivateKey;
+  // back to ~/.ssh defaults. The in-flight promise is memoized so concurrent
+  // first-time connections share one resolution — 1Password is consulted at
+  // most once per process (each read may trigger an authorization prompt).
+  // Failures are not cached, so a transient error stays retryable.
+  private resolvePrivateKeyMaterial(): Promise<Buffer | undefined> {
+    this.privateKeyPromise ??= this.loadPrivateKey().catch((error) => {
+      this.privateKeyPromise = undefined;
+      throw error;
+    });
+    return this.privateKeyPromise;
+  }
 
+  private async loadPrivateKey(): Promise<Buffer | undefined> {
     let privateKey: Buffer | undefined;
     if (this.config.privateKeyPath) {
       if (isOnePasswordRef(this.config.privateKeyPath)) {
@@ -69,8 +76,6 @@ export class SftpClient {
       }
     }
 
-    this.cachedPrivateKey = privateKey;
-    this.privateKeyResolved = true;
     return privateKey;
   }
 
