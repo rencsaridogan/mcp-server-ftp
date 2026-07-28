@@ -29,6 +29,24 @@ npx -y @smithery/cli install @alxspiker/mcp-server-ftp --client claude
 - Node.js 16 or higher
 - Claude for Desktop (or other MCP-compatible client)
 
+### Installing via npm
+
+The server is published as [`mcp-server-ftp`](https://www.npmjs.com/package/mcp-server-ftp), so no clone or build is needed — reference it directly in your Claude Desktop config:
+
+```json
+{
+  "mcpServers": {
+    "ftp-server": {
+      "command": "npx",
+      "args": ["-y", "mcp-server-ftp"],
+      "env": {
+        "FTP_HOST": "ftp.example.com"
+      }
+    }
+  }
+}
+```
+
 ### Building from Source
 
 #### Linux/macOS
@@ -50,11 +68,10 @@ npm run build
 git clone https://github.com/alxspiker/mcp-server-ftp.git
 cd mcp-server-ftp
 
-# Run the Windows build helper script
-build-windows.bat
+# Install dependencies and build
+npm install
+npm run build
 ```
-
-The `build-windows.bat` script handles dependency installation and building on Windows systems, with fallback options if the TypeScript compiler has issues.
 
 ## Configuration
 
@@ -106,10 +123,9 @@ Edit `%APPDATA%\Claude\claude_desktop_config.json`:
 
 If you encounter build issues on Windows:
 
-1. Use the provided `build-windows.bat` script which handles common build issues
-2. Make sure Node.js and npm are properly installed
-3. Try running the TypeScript compiler directly: `npx tsc`
-4. If you still have issues, you can use the pre-compiled files in the `build` directory by running:
+1. Make sure Node.js (18.14 or newer) and npm are properly installed
+2. Try running the TypeScript compiler directly: `npx tsc`
+3. If you still have issues, you can use the pre-compiled files in the `build` directory by running:
    ```
    node path\to\mcp-server-ftp\build\index.js
    ```
@@ -284,11 +300,14 @@ After configuring and restarting Claude for Desktop, you can use natural languag
 | Tool Name | Description |
 |-----------|-------------|
 | `list-directory` | List contents of an FTP directory |
-| `download-file` | Download a file from the FTP server |
-| `upload-file` | Upload a file to the FTP server |
+| `download-file` | Download a file from the FTP server (binary files are returned base64-encoded) |
+| `upload-file` | Upload a file to the FTP server (pass `encoding: "base64"` for binary content) |
 | `create-directory` | Create a new directory on the FTP server |
 | `delete-file` | Delete a file from the FTP server |
 | `delete-directory` | Delete a directory from the FTP server |
+| `rename-file` | Rename or move a file or directory on the FTP server |
+| `edit-file` | Replace an exact string in a text file without re-uploading the whole file content |
+| `append-file` | Append content to a file (creates it if missing) |
 
 ## Security Considerations
 
