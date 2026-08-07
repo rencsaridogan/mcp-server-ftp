@@ -140,7 +140,7 @@ If you encounter build issues on Windows:
 | `FTP_PASSWORD` | FTP password (supports encryption) | (empty string) |
 | `FTP_SECURE` | Use secure FTP (FTPS), ignored when `FTP_PROTOCOL=sftp` | false |
 | `FTP_PROTOCOL` | Protocol to use: `ftp` or `sftp` | ftp |
-| `FTP_PRIVATE_KEY_PATH` | Path to SSH private key for SFTP (e.g. `~/.ssh/id_ed25519`) | (auto-detect) |
+| `FTP_PRIVATE_KEY_PATH` | Path to SSH private key for SFTP (e.g. `~/.ssh/id_ed25519`), or a 1Password secret reference (e.g. `op://Private/my-server/private key`) | (auto-detect) |
 | `FTP_PASSPHRASE` | Passphrase for the SSH private key (supports encryption) | (empty string) |
 | `FTP_ENCRYPTION_KEY` | 64-character hex AES-256 key for decrypting credentials — store in OS keychain, not here | (disabled) |
 
@@ -161,10 +161,31 @@ SFTP supports two authentication methods, chosen automatically:
 
 The server looks for a private key in this order:
 
-1. The path in `FTP_PRIVATE_KEY_PATH` (if set)
+1. The path or 1Password reference in `FTP_PRIVATE_KEY_PATH` (if set)
 2. `~/.ssh/id_ed25519`
 3. `~/.ssh/id_rsa`
 4. `~/.ssh/id_ecdsa`
+
+#### Reading the key from 1Password
+
+Instead of keeping the private key in a file on disk, you can store it as an SSH Key item in 1Password and point `FTP_PRIVATE_KEY_PATH` at a [secret reference](https://developer.1password.com/docs/cli/secret-references/):
+
+```json
+"FTP_PRIVATE_KEY_PATH": "op://Private/my-server/private key"
+```
+
+Requirements:
+
+- The [1Password CLI](https://developer.1password.com/docs/cli/) (`op`) must be installed and on `PATH`.
+- The CLI must be able to authenticate — either through the 1Password desktop app integration (the first read may trigger a biometric/authorization prompt) or a service account token in `OP_SERVICE_ACCOUNT_TOKEN`.
+
+The key is fetched once per server process and cached in memory, so you are not prompted on every SFTP operation. It is never written to disk.
+
+If your server rejects the key format, append `?ssh-format=openssh` to the reference to force OpenSSH private key format:
+
+```json
+"FTP_PRIVATE_KEY_PATH": "op://Private/my-server/private key?ssh-format=openssh"
+```
 
 ### Configuration example
 
